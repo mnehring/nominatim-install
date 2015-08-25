@@ -1,0 +1,74 @@
+#!/bin/bash
+
+set -e
+
+mkdir /tmp/nominatim-install
+cd /tmp/nominatim-install
+git clone url .
+
+USER=deploy
+DOCUMENT_ROOT=/var/www/nominatim
+VERSION=2.4.0
+PLANET=http://ftp5.gwdg.de/pub/misc/openstreetmap/planet.openstreetmap.org/planet/planet-latest.osm.bz2
+THREADS=$(nproc)
+
+# install dependencies
+apt-get update
+apt-get dist-upgrade -y
+apt-get install -y build-essential libxml2-dev libgeos-dev libpq-dev libbz2-dev libtool automake libproj-dev libboost-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev gcc proj-bin libgeos-c1 osmosis libgeos++-dev php5 php-pear php5-pgsql php5-json php-db postgresql postgis postgresql-contrib postgresql-9.3-postgis-2.1 postgresql-server-dev-9.3 libprotobuf-c0-dev protobuf-c-compiler git autoconf-archive nginx php5-fpm git fail2ban htop
+
+useradd -m -s /bin/bash $USER
+
+# setup db
+sudo -u postgres createuser -s $USER
+echo conf/postgresql.conf > /etc/postgresql/9.3/main/postgresql.conf
+service postgresql restart
+
+# setup web server
+createuser -SDR www-data
+echo conf/nginx.conf > /etc/nginx/sites-available/default
+mkdir -p -m 755 $DOCUMENT_ROOT
+chown $USER:$USER $DOCUMENT_ROOT
+service nginx restart
+
+su $USER
+
+# compile
+wget http://www.nominatim.org/release/Nominatim-${VERSION}.tar.bz2
+tar xvf Nominatim-${VERSION}.tar.bz2
+
+cd Nominatim-${VERSION}/
+./configure
+make
+
+# download planet
+wget -O data $PLANET
+
+# download optional data
+wget --output-document=data/wikipedia_article.sql.bin http://www.nominatim.org/data/wikipedia_article.sql.bin
+wget --output-document=data/wikipedia_redirect.sql.bin http://www.nominatim.org/data/wikipedia_redirect.sql.bin
+wget --output-document=data/gb_postcode_data.sql.gz http://www.nominatim.org/data/gb_postcode_data.sql.gz
+
+# load data
+./utils/setup.php --osm-file data/planet-latest.osm.bz2 --all --osm2pgsql-cache 30512 --threads $THREADS
+
+./utils/specialphrases.php --countries > data/specialphrases_countries.sql
+psql -d nominatim -f data/specialphrases_countries.sql
+
+./utils/specialphrases.php --wiki-import > data/specialphrases.sql
+psql -d nominatim -f data/specialphrases.sql
+
+# enable hierarchical updates
+./utils/setup.php --create-functions --enable-diff-updates
+
+# create web
+./utils/setup.php --create-website $DOCUMENT_ROOT
+
+# add crontab
+echo "@monthly ${PWD}/utils/update.php --import-osmosis-all --no-npi" > mycron
+crontab mycron
+rm mycron
+
+# ./util/update.php --index --index-instances $THREADS --max-load $THREADS --max-blocking $THREADS
+#
+# ./utils/update.php --import-osmosis-all --no-npi --max-load 6 --max-blocking 4
