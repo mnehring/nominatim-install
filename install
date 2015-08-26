@@ -2,14 +2,10 @@
 
 set -e
 
-mkdir /tmp/nominatim-install
-cd /tmp/nominatim-install
-git clone url .
-
 USER=deploy
 DOCUMENT_ROOT=/var/www/nominatim
-VERSION=2.4.0
 PLANET=http://ftp5.gwdg.de/pub/misc/openstreetmap/planet.openstreetmap.org/planet/planet-latest.osm.bz2
+RAM=30512
 THREADS=$(nproc)
 
 # install dependencies
@@ -21,28 +17,37 @@ useradd -m -s /bin/bash $USER
 
 # setup db
 sudo -u postgres createuser -s $USER
-echo conf/postgresql.conf > /etc/postgresql/9.3/main/postgresql.conf
+sudo -u postgres createuser -SDR www-data
+cat conf/postgresql.conf > /etc/postgresql/9.3/main/postgresql.conf
 service postgresql restart
 
 # setup web server
-createuser -SDR www-data
-echo conf/nginx.conf > /etc/nginx/sites-available/default
+cat conf/nginx.conf > /etc/nginx/sites-available/default
 mkdir -p -m 755 $DOCUMENT_ROOT
 chown $USER:$USER $DOCUMENT_ROOT
 service nginx restart
 
+# install osmosis
+cd /opt
+mkdir osmosis
+wget http://bretth.dev.openstreetmap.org/osmosis-build/osmosis-latest.zip
+unzip osmosis-latest.zip -d osmosis
+rm osmosis-latest.zip
+
 su $USER
+cd $HOME
 
 # compile
-wget http://www.nominatim.org/release/Nominatim-${VERSION}.tar.bz2
-tar xvf Nominatim-${VERSION}.tar.bz2
+mkdir nominatim
+cd nominatim
 
-cd Nominatim-${VERSION}/
+git clone --recursive git://github.com/twain47/Nominatim.git .
+./autogen.sh
 ./configure
 make
 
 # download planet
-wget -O data $PLANET
+wget $PLANET -P data
 
 # download optional data
 wget --output-document=data/wikipedia_article.sql.bin http://www.nominatim.org/data/wikipedia_article.sql.bin
@@ -50,7 +55,7 @@ wget --output-document=data/wikipedia_redirect.sql.bin http://www.nominatim.org/
 wget --output-document=data/gb_postcode_data.sql.gz http://www.nominatim.org/data/gb_postcode_data.sql.gz
 
 # load data
-./utils/setup.php --osm-file data/planet-latest.osm.bz2 --all --osm2pgsql-cache 30512 --threads $THREADS
+./utils/setup.php --osm-file data/planet-latest.osm.bz2 --all --osm2pgsql-cache $RAM --threads $THREADS
 
 ./utils/specialphrases.php --countries > data/specialphrases_countries.sql
 psql -d nominatim -f data/specialphrases_countries.sql
@@ -58,17 +63,15 @@ psql -d nominatim -f data/specialphrases_countries.sql
 ./utils/specialphrases.php --wiki-import > data/specialphrases.sql
 psql -d nominatim -f data/specialphrases.sql
 
+# cleanup
+rm data/*
+
 # enable hierarchical updates
 ./utils/setup.php --create-functions --enable-diff-updates
+
+echo "GRANT usage ON SCHEMA public TO \"www-data\";" \
+     "GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"www-data\";" | psql -d nominatim
 
 # create web
 ./utils/setup.php --create-website $DOCUMENT_ROOT
 
-# add crontab
-echo "@monthly ${PWD}/utils/update.php --import-osmosis-all --no-npi" > mycron
-crontab mycron
-rm mycron
-
-# ./util/update.php --index --index-instances $THREADS --max-load $THREADS --max-blocking $THREADS
-#
-# ./utils/update.php --import-osmosis-all --no-npi --max-load 6 --max-blocking 4
