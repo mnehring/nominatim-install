@@ -5,6 +5,7 @@ echo Setting up variables
 USER=deploy
 DOCUMENT_ROOT=/var/www/nominatim
 PLANET=http://download.geofabrik.de/europe/andorra-latest.osm.bz2
+PLANETLOCAL=andorra-latest.osm.bz2
 RAM=5102
 THREADS=$(nproc)
 
@@ -66,14 +67,14 @@ echo Making nominatim
 sudo -u $USER make
 
 localNominatimSettings=/home/${username}/nominatim/Nominatim-2.4.0/settings/local.php
-cat > ${localNominatimSettings} << EOF
+sudo -u $USER cat > ${localNominatimSettings} << EOF
 <?php
    // Paths
    @define('CONST_Postgresql_Version', '9.3');
    @define('CONST_Postgis_Version', '2.1');
    
    // Website settings
-   @define('CONST_Website_BaseURL', 'http://${websiteurl}/');
+   @define('CONST_Website_BaseURL', '');
 EOF
 
 
@@ -85,11 +86,11 @@ sudo -u $USER wget --output-document=data/wikipedia_article.sql.bin http://www.n
 sudo -u $USER wget --output-document=data/wikipedia_redirect.sql.bin http://www.nominatim.org/data/wikipedia_redirect.sql.bin
 sudo -u $USER wget --output-document=data/gb_postcode_data.sql.gz http://www.nominatim.org/data/gb_postcode_data.sql.gz
 
+#Drop database - new database created by setup --osm-file
 sudo -u postgres psql postgres -c "DROP DATABASE IF EXISTS nominatim"
-sudo -u postgres psql postgres -c "CREATE DATABASE nominatim"
 
 # load data
-sudo -u $USER ./utils/setup.php --osm-file data/planet-latest.osm.bz2 --all --osm2pgsql-cache $RAM --threads $THREADS
+sudo -u $USER ./utils/setup.php --osm-file data/${PLANETLOCAL} --all --osm2pgsql-cache $RAM --threads $THREADS
 
 sudo -u $USER ./utils/specialphrases.php --countries > data/specialphrases_countries.sql
 sudo -u $USER psql -d nominatim -f data/specialphrases_countries.sql
