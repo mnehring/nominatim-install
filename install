@@ -4,8 +4,8 @@ echo Setting up variables
 
 USER=deploy
 DOCUMENT_ROOT=/var/www/nominatim
-PLANET=http://download.geofabrik.de/europe/andorra-latest.osm.bz2
-PLANETLOCAL=andorra-latest.osm.bz2
+PLANET=http://download.geofabrik.de/north-america-latest.osm.bz2
+PLANETLOCAL=north-america-latest.osm.bz2
 RAM=5102
 THREADS=$(nproc)
 
