@@ -4,14 +4,14 @@ set -e
 
 USER=deploy
 DOCUMENT_ROOT=/var/www/nominatim
-PLANET=http://ftp5.gwdg.de/pub/misc/openstreetmap/planet.openstreetmap.org/planet/planet-latest.osm.bz2
-RAM=30512
+PLANET=http://download.geofabrik.de/europe/andorra-latest.osm.bz2
+RAM=5102
 THREADS=$(nproc)
 
 # install dependencies
 apt-get update
 apt-get dist-upgrade -y
-apt-get install -y build-essential libxml2-dev libgeos-dev libpq-dev libbz2-dev libtool automake libproj-dev libboost-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev gcc proj-bin libgeos-c1 osmosis libgeos++-dev php5 php-pear php5-pgsql php5-json php-db postgresql postgis postgresql-contrib postgresql-9.3-postgis-2.1 postgresql-server-dev-9.3 libprotobuf-c0-dev protobuf-c-compiler git autoconf-archive nginx php5-fpm git fail2ban htop
+apt-get install -y build-essential libxml2-dev libgeos-dev libpq-dev libbz2-dev libtool automake libproj-dev libboost-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev gcc proj-bin libgeos-c1 osmosis libgeos++-dev php5 php-pear php5-pgsql php5-json php-db postgresql postgis postgresql-contrib postgresql-9.3-postgis-2.1 postgresql-server-dev-9.3 libprotobuf-c0-dev protobuf-c-compiler git autoconf-archive nginx php5-fpm git fail2ban htop libxml-parser-perl
 
 useradd -m -s /bin/bash $USER
 
