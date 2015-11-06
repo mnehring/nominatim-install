@@ -2,6 +2,8 @@
 
 set -e
 
+echo Setting up variables
+
 USER=deploy
 DOCUMENT_ROOT=/var/www/nominatim
 PLANET=http://download.geofabrik.de/europe/andorra-latest.osm.bz2
@@ -9,41 +11,60 @@ RAM=5102
 THREADS=$(nproc)
 
 # install dependencies
+echo Updating repositories
 apt-get update
 apt-get dist-upgrade -y
+echo Installing dependencies
 apt-get install -y build-essential libxml2-dev libgeos-dev libpq-dev libbz2-dev libtool automake libproj-dev libboost-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev gcc proj-bin libgeos-c1 osmosis libgeos++-dev php5 php-pear php5-pgsql php5-json php-db postgresql postgis postgresql-contrib postgresql-9.3-postgis-2.1 postgresql-server-dev-9.3 libprotobuf-c0-dev protobuf-c-compiler git autoconf-archive nginx php5-fpm git fail2ban htop libxml-parser-perl
 
+echo Adding a user
 useradd -m -s /bin/bash $USER
+
+echo Adding a postgres user
 
 # setup db
 sudo -u postgres createuser -s $USER
 sudo -u postgres createuser -SDR www-data
+
+echo Coping postgres config file
 cat conf/postgresql.conf > /etc/postgresql/9.3/main/postgresql.conf
+
+echo Restarting postgres
 service postgresql restart
 
 # setup web server
+echo Coping nginx config file
 cat conf/nginx.conf > /etc/nginx/sites-available/default
+echo Configuring and creating document root for nginx
 mkdir -p -m 755 $DOCUMENT_ROOT
 chown $USER:$USER $DOCUMENT_ROOT
+echo Restarting nginx
 service nginx restart
 
 # install osmosis
+echo Downloading osmosis binaries
 cd /opt
 mkdir osmosis
 wget http://bretth.dev.openstreetmap.org/osmosis-build/osmosis-latest.zip
 unzip osmosis-latest.zip -d osmosis
 rm osmosis-latest.zip
 
+echo Changing users
 su $USER
+echo Changing to home directory
 cd $HOME
 
 # compile
+echo Making Nominatim install directory
 mkdir nominatim
 cd nominatim
 
+echo Cloning nominatim
 git clone --recursive git://github.com/twain47/Nominatim.git .
+echo Getting ready to build
 ./autogen.sh
 ./configure
+echo Making nominatim
 make
 
 # download planet
