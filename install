@@ -47,50 +47,47 @@ wget http://bretth.dev.openstreetmap.org/osmosis-build/osmosis-latest.zip
 unzip osmosis-latest.zip -d osmosis
 rm osmosis-latest.zip
 
-echo Changing users
-su $USER
-echo Changing to home directory
-cd $HOME
-
 # compile
 echo Making Nominatim install directory
-mkdir nominatim
-cd nominatim
+sudo -u $USER mkdir /home/${USER}/nominatim
+
+echo Changing directories
+cd /home/${USER}/nominatim
 
 echo Cloning nominatim
-git clone --recursive git://github.com/twain47/Nominatim.git .
+sudo -u $USER git clone --recursive git://github.com/twain47/Nominatim.git .
 echo Getting ready to build
-./autogen.sh
-./configure
+sudo -u $USER ./autogen.sh
+sudo -u $USER ./configure
 echo Making nominatim
-make
+sudo -u $USER make
 
 # download planet
-wget $PLANET -P data
+sudo -u $USER wget $PLANET -P data
 
 # download optional data
-wget --output-document=data/wikipedia_article.sql.bin http://www.nominatim.org/data/wikipedia_article.sql.bin
-wget --output-document=data/wikipedia_redirect.sql.bin http://www.nominatim.org/data/wikipedia_redirect.sql.bin
-wget --output-document=data/gb_postcode_data.sql.gz http://www.nominatim.org/data/gb_postcode_data.sql.gz
+sudo -u $USER wget --output-document=data/wikipedia_article.sql.bin http://www.nominatim.org/data/wikipedia_article.sql.bin
+sudo -u $USER wget --output-document=data/wikipedia_redirect.sql.bin http://www.nominatim.org/data/wikipedia_redirect.sql.bin
+sudo -u $USER wget --output-document=data/gb_postcode_data.sql.gz http://www.nominatim.org/data/gb_postcode_data.sql.gz
 
 # load data
-./utils/setup.php --osm-file data/planet-latest.osm.bz2 --all --osm2pgsql-cache $RAM --threads $THREADS
+sudo -u $USER ./utils/setup.php --osm-file data/planet-latest.osm.bz2 --all --osm2pgsql-cache $RAM --threads $THREADS
 
-./utils/specialphrases.php --countries > data/specialphrases_countries.sql
-psql -d nominatim -f data/specialphrases_countries.sql
+sudo -u $USER ./utils/specialphrases.php --countries > data/specialphrases_countries.sql
+sudo -u $USER psql -d nominatim -f data/specialphrases_countries.sql
 
-./utils/specialphrases.php --wiki-import > data/specialphrases.sql
-psql -d nominatim -f data/specialphrases.sql
+sudo -u $USER ./utils/specialphrases.php --wiki-import > data/specialphrases.sql
+sudo -u $USER psql -d nominatim -f data/specialphrases.sql
 
 # cleanup
-rm data/*
+sudo -u $USER rm data/*
 
 # enable hierarchical updates
-./utils/setup.php --create-functions --enable-diff-updates
+sudo -u $USER ./utils/setup.php --create-functions --enable-diff-updates
 
 echo "GRANT usage ON SCHEMA public TO \"www-data\";" \
      "GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"www-data\";" | psql -d nominatim
 
 # create web
-./utils/setup.php --create-website $DOCUMENT_ROOT
+sudo -u $USER ./utils/setup.php --create-website $DOCUMENT_ROOT
 
