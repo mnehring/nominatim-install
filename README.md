@@ -10,7 +10,7 @@ sudo apt-get -y install git
 git clone https://github.com/mnehring/nominatim-install.git
 
 #Change into directory
-cd nominatim
+cd nominatim-install
 
 #Run the installer
 sudo ./install
