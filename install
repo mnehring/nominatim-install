@@ -54,8 +54,11 @@ sudo -u $USER mkdir /home/${USER}/nominatim
 echo Changing directories
 cd /home/${USER}/nominatim
 
-echo Cloning nominatim
-sudo -u $USER git clone --recursive git://github.com/twain47/Nominatim.git .
+echo Downloading Nominatim 2.4
+sudo -u $USER  wget http://www.nominatim.org/release/Nominatim-2.4.0.tar.bz2
+echo Unzipping Nominatim 2.4
+sudo -u $USER tar xvf Nominatim-2.4.0.tar.bz2
+cd Nominatim-2.4.0
 echo Getting ready to build
 sudo -u $USER ./autogen.sh
 sudo -u $USER ./configure
@@ -69,6 +72,8 @@ sudo -u $USER wget $PLANET -P data
 sudo -u $USER wget --output-document=data/wikipedia_article.sql.bin http://www.nominatim.org/data/wikipedia_article.sql.bin
 sudo -u $USER wget --output-document=data/wikipedia_redirect.sql.bin http://www.nominatim.org/data/wikipedia_redirect.sql.bin
 sudo -u $USER wget --output-document=data/gb_postcode_data.sql.gz http://www.nominatim.org/data/gb_postcode_data.sql.gz
+
+sudo -u postgres psql postgres -c "DROP DATABASE IF EXISTS nominatim"
 
 # load data
 sudo -u $USER ./utils/setup.php --osm-file data/planet-latest.osm.bz2 --all --osm2pgsql-cache $RAM --threads $THREADS
