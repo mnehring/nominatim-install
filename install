@@ -74,6 +74,7 @@ sudo -u $USER wget --output-document=data/wikipedia_redirect.sql.bin http://www.
 sudo -u $USER wget --output-document=data/gb_postcode_data.sql.gz http://www.nominatim.org/data/gb_postcode_data.sql.gz
 
 sudo -u postgres psql postgres -c "DROP DATABASE IF EXISTS nominatim"
+sudo -u postgres psql postgres -c "CREATE DATABASE nominatim"
 
 # load data
 sudo -u $USER ./utils/setup.php --osm-file data/planet-latest.osm.bz2 --all --osm2pgsql-cache $RAM --threads $THREADS
@@ -83,9 +84,6 @@ sudo -u $USER psql -d nominatim -f data/specialphrases_countries.sql
 
 sudo -u $USER ./utils/specialphrases.php --wiki-import > data/specialphrases.sql
 sudo -u $USER psql -d nominatim -f data/specialphrases.sql
-
-# cleanup
-sudo -u $USER rm data/*
 
 # enable hierarchical updates
 sudo -u $USER ./utils/setup.php --create-functions --enable-diff-updates
