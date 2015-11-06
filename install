@@ -107,3 +107,11 @@ echo "GRANT usage ON SCHEMA public TO \"www-data\";" \
 # create web
 sudo -u $USER ./utils/setup.php --create-website $DOCUMENT_ROOT
 
+#Install Tiger housenumber data (US)
+apt-get install python-gdal
+
+sudo -u $USER mkdir /home/${USER}/nominatim/tiger
+cd /home/${USER}/nominatim/tiger
+sudo -u $USER wget -r ftp://ftp2.census.gov/geo/tiger/TIGER2014/EDGES/
+sudo -u $USER ./utils/imports.php --parse-tiger-2011 /home/${USER}/nominatim/tiger
+sudo -u $USER ./utils/setup.php --import-tiger-data
