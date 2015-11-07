@@ -6,7 +6,7 @@ USER=deploy
 DOCUMENT_ROOT=/var/www/nominatim
 PLANET=http://download.geofabrik.de/north-america-latest.osm.bz2
 PLANETLOCAL=north-america-latest.osm.bz2
-RAM=5102
+RAM=4096
 THREADS=$(nproc)
 
 # install dependencies
@@ -113,5 +113,6 @@ apt-get install python-gdal
 sudo -u $USER mkdir /home/${USER}/nominatim/tiger
 cd /home/${USER}/nominatim/tiger
 sudo -u $USER wget -r ftp://ftp2.census.gov/geo/tiger/TIGER2014/EDGES/
+cd /home/${USER}/nominatim/Nominatim-2.4.0
 sudo -u $USER ./utils/imports.php --parse-tiger-2011 /home/${USER}/nominatim/tiger
 sudo -u $USER ./utils/setup.php --import-tiger-data
